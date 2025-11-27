@@ -1,0 +1,20 @@
+// Auto-generated file - do not edit manually
+// Generated from schema files at compile time
+
+use std::collections::HashMap;
+
+/// The embedded schema files as bytes
+const SCHEMA_FILES_BYTES: &[u8] = &{SCHEMA_FILES_BYTES};
+
+/// Get all embedded schema files
+pub fn get_schema_files() -> HashMap<String, String> {
+    serde_json::from_slice(SCHEMA_FILES_BYTES)
+        .unwrap_or_else(|_| HashMap::new()) // Return empty map if parsing fails
+}
+
+/// Get a specific schema file content
+pub fn get_schema_file(action_id: &str, schema_type: &str) -> Option<String> {
+    let schema_files = get_schema_files();
+    let key = format!("{}_{}", action_id, schema_type);
+    schema_files.get(&key).cloned()
+}

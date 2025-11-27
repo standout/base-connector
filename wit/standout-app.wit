@@ -1,0 +1,283 @@
+package standout:app@3.0.0;
+
+interface types {
+  // The trigger-store is a string that is used to store data between trigger
+  // invocations. It is unique per trigger instance and is persisted between
+  // invocations.
+  //
+  // You can store any string here. We suggest that you use a serialized
+  // JSON object or similar since that will give you some flexibility if you
+  // need to add more data to the store.
+  type trigger-store = string;
+
+  record connection {
+    id: string,
+    name: string,
+    // The connection data is a JSON object serialized into a string. The JSON root
+    // will always be an object.
+    serialized-data: string,
+  }
+
+  record trigger-context {
+    // Trigger ID is a unique identifier for the trigger that is requested to be
+    // invoked.
+    trigger-id: string,
+
+    // The connection that the trigger is invoked for.
+    // Connection is required for all trigger operations.
+    connection: connection,
+
+    // The store will contain the data that was stored in the trigger store the
+    // last time the trigger was invoked.
+    store: trigger-store,
+
+    // The input data for the trigger, serialized as a JSON object string.
+    // This contains the input data from the trigger configuration form.
+    serialized-input: string,
+  }
+
+  record action-context {
+    // Action ID is a unique identifier for the action that is requested to be
+    // invoked.
+    action-id: string,
+
+    // The connection that the action is invoked for.
+    // Connection is required for all action operations.
+    connection: connection,
+
+    // The input data for the action, serialized as a JSON object string.
+    // This contains the data passed from the previous step in the workflow.
+    serialized-input: string,
+  }
+
+  record trigger-response {
+    // The trigger events, each event will be used to spawn a new workflow
+    // execution in Standouts integration plattform.
+    events: list<trigger-event>,
+
+    // The updated store will be stored and used the next time the trigger is
+    // invoked.
+    store: trigger-store,
+  }
+
+  record action-response {
+    // The output data from the action, serialized as a JSON object string.
+    // This contains the data that will be passed to the next step in the workflow.
+    // The data must be a valid JSON object (not an array or primitive).
+    serialized-output: string
+  }
+
+  record trigger-event {
+    // The ID of the trigger event
+    //
+    // If the connection used for the given instance of the trigger is the same,
+    // as seen before. Then the event will be ignored.
+    //
+    // A scheduler could therefore use an timestamp as the ID, to ensure that
+    // the event is only triggered once per given time.
+    //
+    // A trigger that acts on created orders in a e-commerce system could use
+    // the order ID as the ID, to ensure that the event is only triggered once
+    // per order.
+    //
+    // A trigger that acts on updated orders in a e-commerce system could use
+    // the order ID in combination with an updated at timestamp as the ID, to
+    // ensure that the event is only triggered once per order update.
+    id: string,
+
+    // Serialized data must be a JSON object serialized into a string
+    // Note that it is important that the root is a object, not an array,
+    // or another primitive type.
+    serialized-data: string,
+  }
+
+  /// A structured error that can be returned by for example a call to a trigger or action.
+  /// Contains a machine-readable code and a human-readable message.
+  record app-error {
+    /// The error code identifying the type of failure.
+    code: error-code,
+
+    /// A human-readable message describing the error in more detail.
+    message: string,
+  }
+
+  /// An enumeration of error codes that can be returned by a trigger implementation.
+  /// These codes help the platform and plugin developers distinguish between different types of failures.
+  variant error-code {
+    /// Authentication failed. Typically due to an invalid or expired API key or token.
+    unauthenticated,
+
+    /// Authorization failed. The connection is valid but does not have the necessary permissions.
+    forbidden,
+
+    /// The trigger is misconfigured. For example, a required setting is missing or invalid.
+    misconfigured,
+
+    /// The target system does not support a required feature or endpoint.
+    unsupported,
+
+    /// The target system is rate-limiting requests. Try again later.
+    rate-limit,
+
+    /// The request timed out. The target system did not respond in time.
+    timeout,
+
+    /// The target system is currently unavailable or unreachable.
+    unavailable,
+
+    /// An unexpected internal error occurred in the plugin.
+    internal-error,
+
+    /// The response from the external system could not be parsed or was in an invalid format.
+    malformed-response,
+
+    /// A catch-all for all other types of errors. Should include a descriptive message.
+    other,
+
+    /// Complete the current workflow execution.
+    complete-workflow,
+
+    /// Complete the parent step execution.
+    complete-parent,
+  }
+}
+
+
+interface triggers {
+  use types.{trigger-context, trigger-event, trigger-response, app-error};
+
+  trigger-ids: func() -> result<list<string>, app-error>;
+
+  // Get the input schema for a specific trigger
+  // Returns a JSON Schema Draft 2020-12 schema as a string
+  // The schema may vary based on the connection in the context
+  // The trigger-id is extracted from the context
+  input-schema: func(context: trigger-context) -> result<string, app-error>;
+
+  // Get the output schema for a specific trigger
+  // Returns a JSON Schema Draft 2020-12 schema as a string
+  // The schema may vary based on the connection in the context
+  // The trigger-id is extracted from the context
+  output-schema: func(context: trigger-context) -> result<string, app-error>;
+
+  // Fetch events
+  //
+  // There are some limitations to the function:
+  // - It must a `trigger-response` within 30 seconds
+  // - It must return less than or equal to 100 `trigger-response.events`
+  // - It must not return more than 64 kB of data in the `trigger-response.store`
+  //
+  // If you need to fetch more events, you can return up to 100 events and then
+  // store the data needed for you to remember where you left off in the store.
+  // The next time the trigger is invoked, you can use the store to continue
+  // where you left off.
+  //
+  // If you do not pass the limitations the return value will be ignored. We
+  // will not handle any events and we persist the store that was returned in
+  // the response.
+  //
+  // That also means that you should implement your fetch event function in a
+  // way that it can be called multiple times using the same context and return
+  // the same events. That will ensure that the user that is building an
+  // integration with your trigger will not miss any events if your system is
+  // down for a short period of time.
+  fetch-events: func(context: trigger-context) -> result<trigger-response, app-error>;
+}
+
+interface actions {
+  use types.{action-context, action-response, app-error};
+
+  action-ids: func() -> result<list<string>, app-error>;
+
+  // Get the input schema for a specific action
+  // Returns a JSON Schema Draft 2020-12 schema as a string
+  // The schema may vary based on the connection in the context
+  // The action-id is extracted from the context
+  input-schema: func(context: action-context) -> result<string, app-error>;
+
+  // Get the output schema for a specific action
+  // Returns a JSON Schema Draft 2020-12 schema as a string
+  // The schema may vary based on the connection in the context
+  // The action-id is extracted from the context
+  output-schema: func(context: action-context) -> result<string, app-error>;
+
+  // Execute an action
+  //
+  // There are some limitations to the function:
+  // - It must return an `action-response` within 30 seconds
+  // - The serialized-output must be a valid JSON object serialized as a string
+  //
+  // Actions can perform various operations such as:
+  // - Making HTTP requests to external APIs
+  // - Processing and transforming data
+  // - Storing data for future use
+  // - Triggering other systems or workflows
+  //
+  // The action receives input data from the previous step and can return
+  // serialized output data to be passed to the next step in the workflow.
+  execute: func(context: action-context) -> result<action-response, app-error>;
+}
+
+interface environment {
+  // Get all environment variables
+  env-vars: func() -> list<tuple<string, string>>;
+  // Get a specific environment variable by name
+  env-var: func(name: string) -> option<string>;
+}
+
+interface http {
+  record response {
+    status: u16,
+    headers: headers,
+    body: string,
+  }
+
+  record request {
+    method: method,
+    url: string,
+    headers: headers,
+    body: string,
+  }
+
+  variant request-error {
+    other(string)
+  }
+
+  type headers = list<tuple<string, string>>;
+
+  resource request-builder {
+    constructor();
+
+    method: func(method: method) -> request-builder;
+    url: func(url: string) -> request-builder;
+
+    // Add a header to the request
+    header: func(key: string, value: string) -> request-builder;
+    headers: func(headers: list<tuple<string, string>>) -> request-builder;
+
+    // Add a body to the request
+    body: func(body: string) -> request-builder;
+
+    object: func() -> request;
+
+    // Send the request
+    send: func() -> result<response, request-error>;
+  }
+
+  variant method {
+    get,
+    post,
+    put,
+    delete,
+    patch,
+    options,
+    head,
+  }
+}
+
+world bridge {
+  import http;
+  import environment;
+  export triggers;
+  export actions;
+}

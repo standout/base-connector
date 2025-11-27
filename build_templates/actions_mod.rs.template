@@ -1,0 +1,9 @@
+// Auto-generated file - do not edit manually
+// Generated from existing action executors at compile time
+
+// Action utilities
+pub mod utils;
+
+// Include generated action executors
+{ACTION_MODULES}
+

@@ -1,0 +1,57 @@
+// Auto-generated file - do not edit manually
+// Generated from existing trigger executors at compile time
+
+// Note: ApiClient, AppError, TriggerContext, and TriggerResponse are already imported in lib.rs
+
+/// Dynamically fetch events for a trigger based on the trigger_id
+#[allow(clippy::match_single_binding, unused_variables)]
+pub fn execute_trigger_fetch_events_dynamically(
+    trigger_id: &str,
+    context: TriggerContext,
+) -> Result<TriggerResponse, AppError> {
+    match trigger_id {
+{FETCH_EVENTS_MATCH_ARMS}
+        _ => Err(AppError {
+            code: crate::standout::app::types::ErrorCode::Other,
+            message: format!("Trigger '{}' not implemented", trigger_id),
+        }),
+    }
+}
+
+/// Dynamically get input schema for a trigger
+#[allow(clippy::match_single_binding, unused_variables)]
+pub fn execute_trigger_input_schema_dynamically(
+    trigger_id: &str,
+    client: &ApiClient,
+) -> Result<serde_json::Value, AppError> {
+    match trigger_id {
+{INPUT_SCHEMA_MATCH_ARMS}
+        _ => Err(AppError {
+            code: crate::standout::app::types::ErrorCode::Other,
+            message: format!("Input schema for trigger '{}' not implemented", trigger_id),
+        }),
+    }
+}
+
+/// Dynamically get output schema for a trigger
+#[allow(clippy::match_single_binding, unused_variables)]
+pub fn execute_trigger_output_schema_dynamically(
+    trigger_id: &str,
+    client: &ApiClient,
+) -> Result<serde_json::Value, AppError> {
+    match trigger_id {
+{OUTPUT_SCHEMA_MATCH_ARMS}
+        _ => Err(AppError {
+            code: crate::standout::app::types::ErrorCode::Other,
+            message: format!("Output schema for trigger '{}' not implemented", trigger_id),
+        }),
+    }
+}
+
+/// Get list of available trigger IDs
+pub fn get_available_triggers() -> Vec<String> {
+    vec![
+{AVAILABLE_TRIGGERS_LIST}
+    ]
+}
+
