@@ -1,0 +1,59 @@
+// Auto-generated file - do not edit manually
+// Generated from existing action executors at compile time
+
+use crate::client::ApiClient;
+use crate::standout::app::types::AppError;
+use serde_json::Value;
+
+/// Dynamically execute an action based on the action_id
+#[allow(clippy::match_single_binding, unused_variables)]
+pub fn execute_action_dynamically(
+    action_id: &str,
+    client: &ApiClient,
+    input_data: &Value,
+) -> Result<Value, AppError> {
+    match action_id {
+{EXECUTE_MATCH_ARMS}
+        _ => Err(AppError {
+            code: crate::standout::app::types::ErrorCode::Other,
+            message: format!("Action '{}' not implemented", action_id),
+        }),
+    }
+}
+
+/// Dynamically get input schema for an action
+#[allow(clippy::match_single_binding, unused_variables)]
+pub fn execute_action_input_schema_dynamically(
+    action_id: &str,
+    client: &ApiClient,
+) -> Result<serde_json::Value, AppError> {
+    match action_id {
+{INPUT_SCHEMA_MATCH_ARMS}
+        _ => Err(AppError {
+            code: crate::standout::app::types::ErrorCode::Other,
+            message: format!("Input schema for action '{}' not implemented", action_id),
+        }),
+    }
+}
+
+/// Dynamically get output schema for an action
+#[allow(clippy::match_single_binding, unused_variables)]
+pub fn execute_action_output_schema_dynamically(
+    action_id: &str,
+    client: &ApiClient,
+) -> Result<serde_json::Value, AppError> {
+    match action_id {
+{OUTPUT_SCHEMA_MATCH_ARMS}
+        _ => Err(AppError {
+            code: crate::standout::app::types::ErrorCode::Other,
+            message: format!("Output schema for action '{}' not implemented", action_id),
+        }),
+    }
+}
+
+/// Get list of available action IDs
+pub fn get_available_actions() -> Vec<String> {
+    vec![
+{AVAILABLE_ACTIONS_LIST}
+    ]
+}

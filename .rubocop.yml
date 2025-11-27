@@ -1,0 +1,9 @@
+# frozen_string_literal: true
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.4.2
+  SuggestExtensions: false
+
+Metrics/BlockLength:
+  Enabled: false
