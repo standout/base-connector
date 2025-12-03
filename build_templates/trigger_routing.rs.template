@@ -22,7 +22,7 @@ pub fn execute_trigger_fetch_events_dynamically(
 #[allow(clippy::match_single_binding, unused_variables)]
 pub fn execute_trigger_input_schema_dynamically(
     trigger_id: &str,
-    client: &ApiClient,
+    context: &TriggerContext,
 ) -> Result<serde_json::Value, AppError> {
     match trigger_id {
 {INPUT_SCHEMA_MATCH_ARMS}
@@ -37,7 +37,7 @@ pub fn execute_trigger_input_schema_dynamically(
 #[allow(clippy::match_single_binding, unused_variables)]
 pub fn execute_trigger_output_schema_dynamically(
     trigger_id: &str,
-    client: &ApiClient,
+    context: &TriggerContext,
 ) -> Result<serde_json::Value, AppError> {
     match trigger_id {
 {OUTPUT_SCHEMA_MATCH_ARMS}

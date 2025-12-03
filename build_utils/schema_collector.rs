@@ -13,10 +13,12 @@ pub fn collect_schema_files() -> Result<HashMap<String, String>, BuildError> {
             if path.is_dir() {
                 let name = path
                     .file_name()
-                    .ok_or_else(|| BuildError::Io(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Invalid directory name",
-                    )))?
+                    .ok_or_else(|| {
+                        BuildError::Io(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Invalid directory name",
+                        ))
+                    })?
                     .to_string_lossy()
                     .to_string();
 
@@ -42,10 +44,12 @@ pub fn collect_schema_files() -> Result<HashMap<String, String>, BuildError> {
             if path.is_dir() {
                 let name = path
                     .file_name()
-                    .ok_or_else(|| BuildError::Io(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Invalid directory name",
-                    )))?
+                    .ok_or_else(|| {
+                        BuildError::Io(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Invalid directory name",
+                        ))
+                    })?
                     .to_string_lossy()
                     .to_string();
 

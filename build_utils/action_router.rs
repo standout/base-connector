@@ -14,10 +14,12 @@ pub fn generate_action_routing(out_dir: &Path) -> Result<(), BuildError> {
             if path.is_dir() {
                 let action_name = path
                     .file_name()
-                    .ok_or_else(|| BuildError::Io(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Invalid action directory name",
-                    )))?
+                    .ok_or_else(|| {
+                        BuildError::Io(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Invalid action directory name",
+                        ))
+                    })?
                     .to_string_lossy()
                     .to_string();
                 let action_path = path.join("action.rs");
@@ -43,7 +45,7 @@ pub fn generate_action_routing(out_dir: &Path) -> Result<(), BuildError> {
     let mut execute_match_arms = String::new();
     for action_name in &action_modules {
         execute_match_arms.push_str(&format!(
-            "        \"{}\" => actions::{}::execute(client, input_data),\n",
+            "        \"{}\" => actions::{}::execute(context),\n",
             action_name, action_name
         ));
     }
@@ -52,7 +54,7 @@ pub fn generate_action_routing(out_dir: &Path) -> Result<(), BuildError> {
     let mut input_schema_match_arms = String::new();
     for action_name in &action_modules {
         input_schema_match_arms.push_str(&format!(
-            "        \"{}\" => actions::{}::input_schema(client),\n",
+            "        \"{}\" => actions::{}::input_schema(context),\n",
             action_name, action_name
         ));
     }
@@ -61,7 +63,7 @@ pub fn generate_action_routing(out_dir: &Path) -> Result<(), BuildError> {
     let mut output_schema_match_arms = String::new();
     for action_name in &action_modules {
         output_schema_match_arms.push_str(&format!(
-            "        \"{}\" => actions::{}::output_schema(client),\n",
+            "        \"{}\" => actions::{}::output_schema(context),\n",
             action_name, action_name
         ));
     }

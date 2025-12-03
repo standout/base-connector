@@ -70,4 +70,3 @@ pub fn request_body_without_empty_values(
 
     Ok(json!(body))
 }
-

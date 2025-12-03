@@ -193,18 +193,32 @@ Create a directory `src/actions/{action_name}/` with:
 - **`action.rs`** - Must export three functions:
   ```rust
   use crate::client::ApiClient;
-  use crate::standout::app::types::AppError;
+  use crate::standout::app::types::{AppError, ActionContext};
   use serde_json::Value;
 
+  /// Get the ApiClient from context
+  fn client(context: &ActionContext) -> Result<ApiClient, AppError> {
+      let connection_data: Value = serde_json::from_str(&context.connection.serialized_data)?;
+      ApiClient::new(&connection_data)
+  }
+
+  /// Get the input data from context
+  fn input_data(context: &ActionContext) -> Result<Value, AppError> {
+      serde_json::from_str(&context.serialized_input)
+  }
+
   /// Execute the action
-  pub fn execute(client: &ApiClient, input_data: &Value) -> Result<Value, AppError> {
+  pub fn execute(context: ActionContext) -> Result<Value, AppError> {
+      let client = client(&context)?;
+      let input_data = input_data(&context)?;
+      
       // Your action implementation
       // Make API calls using client.get(), client.post(), etc.
       // Return the response as Value
   }
 
   /// Get input schema
-  pub fn input_schema(_client: &ApiClient) -> Result<Value, AppError> {
+  pub fn input_schema(_context: &ActionContext) -> Result<Value, AppError> {
       // Load schema from file or return inline
       // If the schema should be fetched dynamically, use the ApiClient
       let schema = include_str!("base_input_schema.json");
@@ -212,7 +226,7 @@ Create a directory `src/actions/{action_name}/` with:
   }
 
   /// Get output schema
-  pub fn output_schema(_client: &ApiClient) -> Result<Value, AppError> {
+  pub fn output_schema(_context: &ActionContext) -> Result<Value, AppError> {
       // Load schema from file or return inline
       // If the schema should be fetched dynamically, use the ApiClient
       let schema = include_str!("base_output_schema.json");
@@ -233,18 +247,35 @@ Create a directory `src/triggers/{trigger_name}/` with:
   use crate::standout::app::types::{AppError, TriggerContext, TriggerResponse, TriggerEvent};
   use serde_json::Value;
 
+  /// Get the ApiClient from context
+  fn client(context: &TriggerContext) -> Result<ApiClient, AppError> {
+      let connection_data: Value = serde_json::from_str(&context.connection.serialized_data)?;
+      ApiClient::new(&connection_data)
+  }
+
+  /// Get the input data from context
+  fn input_data(context: &TriggerContext) -> Result<Value, AppError> {
+      if context.serialized_input.is_empty() {
+          Ok(serde_json::json!({}))
+      } else {
+          serde_json::from_str(&context.serialized_input)
+      }
+  }
+
+  /// Get the store data from context
+  fn store_data(context: &TriggerContext) -> Result<Value, AppError> {
+      if context.store.is_empty() {
+          Ok(serde_json::json!({}))
+      } else {
+          serde_json::from_str(&context.store)
+      }
+  }
+
   /// Fetch events for the trigger
   pub fn fetch_events(context: TriggerContext) -> Result<TriggerResponse, AppError> {
-      // Parse connection data
-      let connection_data: Value = serde_json::from_str(&context.connection.serialized_data)?;
-      let client = ApiClient::new(&connection_data)?;
-
-      // Parse store data (persists between runs)
-      let store_data: Value = if context.store.is_empty() {
-          serde_json::json!({})
-      } else {
-          serde_json::from_str(&context.store)?
-      };
+      let api_client = client(&context)?;
+      let input_data = input_data(&context)?;
+      let store_data = store_data(&context)?;
 
       // Fetch data from API, process into events
       let events: Vec<TriggerEvent> = vec![]; // Your events here
@@ -260,13 +291,13 @@ Create a directory `src/triggers/{trigger_name}/` with:
   }
 
   /// Get input schema
-  pub fn input_schema(_client: &ApiClient) -> Result<Value, AppError> {
+  pub fn input_schema(_context: &TriggerContext) -> Result<Value, AppError> {
       let schema = include_str!("input_schema.json");
       Ok(serde_json::from_str(schema)?)
   }
 
   /// Get output schema
-  pub fn output_schema(_client: &ApiClient) -> Result<Value, AppError> {
+  pub fn output_schema(_context: &TriggerContext) -> Result<Value, AppError> {
       let schema = include_str!("output_schema.json");
       Ok(serde_json::from_str(schema)?)
   }
@@ -343,10 +374,54 @@ See `src/client.rs` for the current implementation.
 
 ## Testing
 
+The connector uses RSpec for integration testing with WireMock to mock API responses.
+
+### Setup
+
+1. **Install Ruby dependencies:**
+   ```bash
+   bundle install
+   ```
+
+2. **Build the WASM module:**
+   ```bash
+   cargo build --release --target wasm32-wasip2
+   ```
+
+3. **Ensure Docker is running** (required for WireMock):
+   ```bash
+   docker --version
+   ```
+
+### Running Tests
+
+The test suite automatically starts and stops WireMock using Docker Compose:
+
 ```bash
-# Run RSpec tests (requires Ruby)
+# Run all tests
 bundle exec rspec
+
+# Run tests for a specific file
+bundle exec rspec spec/triggers/example_spec.rb
+
+# Run a specific test
+bundle exec rspec spec/triggers/example_spec.rb:16
 ```
+
+### WireMock
+
+Tests use [WireMock](https://wiremock.org/) running in Docker to mock external API responses. The mock server is automatically managed by the test suite:
+
+- **Automatic startup**: WireMock starts before tests run
+- **Automatic cleanup**: WireMock stops after tests complete
+- **Manual control** (optional):
+  ```bash
+  ./scripts/test-setup.sh start   # Start WireMock
+  ./scripts/test-setup.sh stop    # Stop WireMock
+  ./scripts/test-setup.sh status  # Check status
+  ```
+
+WireMock runs on `http://localhost:8080` by default. The `TestHelper` module in `spec/test_helper.rb` provides utilities for configuring mock endpoints and creating test contexts.
 
 ## Development
 

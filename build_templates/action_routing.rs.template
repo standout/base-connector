@@ -1,17 +1,14 @@
 // Auto-generated file - do not edit manually
 // Generated from existing action executors at compile time
 
-use crate::client::ApiClient;
 use crate::standout::app::types::AppError;
-use serde_json::Value;
 
 /// Dynamically execute an action based on the action_id
 #[allow(clippy::match_single_binding, unused_variables)]
 pub fn execute_action_dynamically(
     action_id: &str,
-    client: &ApiClient,
-    input_data: &Value,
-) -> Result<Value, AppError> {
+    context: ActionContext,
+) -> Result<serde_json::Value, AppError> {
     match action_id {
 {EXECUTE_MATCH_ARMS}
         _ => Err(AppError {
@@ -25,7 +22,7 @@ pub fn execute_action_dynamically(
 #[allow(clippy::match_single_binding, unused_variables)]
 pub fn execute_action_input_schema_dynamically(
     action_id: &str,
-    client: &ApiClient,
+    context: &ActionContext,
 ) -> Result<serde_json::Value, AppError> {
     match action_id {
 {INPUT_SCHEMA_MATCH_ARMS}
@@ -40,7 +37,7 @@ pub fn execute_action_input_schema_dynamically(
 #[allow(clippy::match_single_binding, unused_variables)]
 pub fn execute_action_output_schema_dynamically(
     action_id: &str,
-    client: &ApiClient,
+    context: &ActionContext,
 ) -> Result<serde_json::Value, AppError> {
     match action_id {
 {OUTPUT_SCHEMA_MATCH_ARMS}

@@ -43,6 +43,7 @@ impl ApiClient {
     }
 
     /// Make a GET request and return the response body
+    #[allow(dead_code)]
     pub fn get(&self, endpoint: &str) -> Result<Value, AppError> {
         let url = format!("{}{}", self.base_url, endpoint);
         let mut request_builder = RequestBuilder::new().method(Method::Get).url(&url);
@@ -74,6 +75,7 @@ impl ApiClient {
     }
 
     /// Make a POST request with JSON body and return the response body
+    #[allow(dead_code)]
     pub fn post(&self, endpoint: &str, body: &Value) -> Result<Value, AppError> {
         let body_str = serde_json::to_string(body).map_err(|e| AppError {
             code: ErrorCode::Other,
@@ -113,6 +115,7 @@ impl ApiClient {
     }
 
     /// Make a PATCH request with JSON body and return the response body
+    #[allow(dead_code)]
     pub fn patch(&self, endpoint: &str, body: &Value) -> Result<Value, AppError> {
         let body_str = serde_json::to_string(body).map_err(|e| AppError {
             code: ErrorCode::Other,
@@ -152,6 +155,7 @@ impl ApiClient {
     }
 
     /// Make a PUT request with JSON body and return the response body
+    #[allow(dead_code)]
     pub fn put(&self, endpoint: &str, body: &Value) -> Result<Value, AppError> {
         let body_str = serde_json::to_string(body).map_err(|e| AppError {
             code: ErrorCode::Other,
