@@ -14,10 +14,12 @@ pub fn generate_trigger_routing(out_dir: &Path) -> Result<(), BuildError> {
             if path.is_dir() {
                 let trigger_name = path
                     .file_name()
-                    .ok_or_else(|| BuildError::Io(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Invalid trigger directory name",
-                    )))?
+                    .ok_or_else(|| {
+                        BuildError::Io(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Invalid trigger directory name",
+                        ))
+                    })?
                     .to_string_lossy()
                     .to_string();
                 let trigger_path = path.join("fetch_events.rs");
@@ -52,7 +54,7 @@ pub fn generate_trigger_routing(out_dir: &Path) -> Result<(), BuildError> {
     let mut input_schema_match_arms = String::new();
     for trigger_name in &trigger_modules {
         input_schema_match_arms.push_str(&format!(
-            "        \"{}\" => triggers::{}::input_schema(client),\n",
+            "        \"{}\" => triggers::{}::input_schema(context),\n",
             trigger_name, trigger_name
         ));
     }
@@ -61,7 +63,7 @@ pub fn generate_trigger_routing(out_dir: &Path) -> Result<(), BuildError> {
     let mut output_schema_match_arms = String::new();
     for trigger_name in &trigger_modules {
         output_schema_match_arms.push_str(&format!(
-            "        \"{}\" => triggers::{}::output_schema(client),\n",
+            "        \"{}\" => triggers::{}::output_schema(context),\n",
             trigger_name, trigger_name
         ));
     }

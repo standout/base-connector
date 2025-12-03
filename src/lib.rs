@@ -35,26 +35,12 @@ impl TriggersGuest for App {
     }
 
     fn input_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
-        // Parse connection data to create ApiClient
-        let connection_data: serde_json::Value =
-            serde_json::from_str(&context.connection.serialized_data).map_err(|_e| {
-                TriggersAppError {
-                    code: crate::standout::app::types::ErrorCode::Other,
-                    message: "Invalid connection configuration".to_string(),
-                }
-            })?;
-
-        let client = client::ApiClient::new(&connection_data).map_err(|e| TriggersAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to create client: {}", e.message),
-        })?;
-
         // Call the executor's input_schema method dynamically
-        let schema_value = execute_trigger_input_schema_dynamically(&context.trigger_id, &client)
+        let schema_value = execute_trigger_input_schema_dynamically(&context.trigger_id, &context)
             .map_err(|e| TriggersAppError {
-            code: e.code,
-            message: e.message,
-        })?;
+                code: e.code,
+                message: e.message,
+            })?;
 
         serde_json::to_string_pretty(&schema_value).map_err(|e| TriggersAppError {
             code: crate::standout::app::types::ErrorCode::Other,
@@ -63,22 +49,8 @@ impl TriggersGuest for App {
     }
 
     fn output_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
-        // Parse connection data to create ApiClient
-        let connection_data: serde_json::Value =
-            serde_json::from_str(&context.connection.serialized_data).map_err(|_e| {
-                TriggersAppError {
-                    code: crate::standout::app::types::ErrorCode::Other,
-                    message: "Invalid connection configuration".to_string(),
-                }
-            })?;
-
-        let client = client::ApiClient::new(&connection_data).map_err(|e| TriggersAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to create client: {}", e.message),
-        })?;
-
         // Call the executor's output_schema method dynamically
-        let schema_value = execute_trigger_output_schema_dynamically(&context.trigger_id, &client)
+        let schema_value = execute_trigger_output_schema_dynamically(&context.trigger_id, &context)
             .map_err(|e| TriggersAppError {
                 code: e.code,
                 message: e.message,
@@ -109,22 +81,8 @@ impl ActionsGuest for App {
     }
 
     fn input_schema(context: ActionContext) -> Result<String, ActionsAppError> {
-        // Parse connection data to create ApiClient
-        let connection_data: serde_json::Value =
-            serde_json::from_str(&context.connection.serialized_data).map_err(|_e| {
-                ActionsAppError {
-                    code: crate::standout::app::types::ErrorCode::Other,
-                    message: "Invalid connection configuration".to_string(),
-                }
-            })?;
-
-        let client = client::ApiClient::new(&connection_data).map_err(|e| ActionsAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to create client: {}", e.message),
-        })?;
-
         // Call the executor's input_schema method dynamically
-        let schema_value = execute_action_input_schema_dynamically(&context.action_id, &client)
+        let schema_value = execute_action_input_schema_dynamically(&context.action_id, &context)
             .map_err(|e| ActionsAppError {
                 code: e.code,
                 message: e.message,
@@ -137,26 +95,12 @@ impl ActionsGuest for App {
     }
 
     fn output_schema(context: ActionContext) -> Result<String, ActionsAppError> {
-        // Parse connection data to create ApiClient
-        let connection_data: serde_json::Value =
-            serde_json::from_str(&context.connection.serialized_data).map_err(|_e| {
-                ActionsAppError {
-                    code: crate::standout::app::types::ErrorCode::Other,
-                    message: "Invalid connection configuration".to_string(),
-                }
-            })?;
-
-        let client = client::ApiClient::new(&connection_data).map_err(|e| ActionsAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to create client: {}", e.message),
-        })?;
-
         // Call the executor's output_schema method dynamically
-        let schema_value = execute_action_output_schema_dynamically(&context.action_id, &client)
+        let schema_value = execute_action_output_schema_dynamically(&context.action_id, &context)
             .map_err(|e| ActionsAppError {
-                code: e.code,
-                message: e.message,
-            })?;
+            code: e.code,
+            message: e.message,
+        })?;
 
         serde_json::to_string_pretty(&schema_value).map_err(|e| ActionsAppError {
             code: crate::standout::app::types::ErrorCode::Other,
@@ -165,34 +109,12 @@ impl ActionsGuest for App {
     }
 
     fn execute(context: ActionContext) -> Result<ActionResponse, ActionsAppError> {
-        // Parse connection data to create ApiClient
-        let connection_data: serde_json::Value =
-            serde_json::from_str(&context.connection.serialized_data).map_err(|_e| {
-                ActionsAppError {
-                    code: crate::standout::app::types::ErrorCode::Other,
-                    message: "Invalid connection configuration".to_string(),
-                }
-            })?;
-
-        let client = client::ApiClient::new(&connection_data).map_err(|e| ActionsAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to create client: {}", e.message),
-        })?;
-
-        // Parse input data
-        let input_data: serde_json::Value = serde_json::from_str(&context.serialized_input)
-            .map_err(|_e| ActionsAppError {
-                code: crate::standout::app::types::ErrorCode::Other,
-                message: "Invalid input data".to_string(),
-            })?;
-
         // Execute the appropriate action dynamically
+        let action_id = context.action_id.clone();
         let result =
-            execute_action_dynamically(&context.action_id, &client, &input_data).map_err(|e| {
-                ActionsAppError {
-                    code: e.code,
-                    message: e.message,
-                }
+            execute_action_dynamically(&action_id, context).map_err(|e| ActionsAppError {
+                code: e.code,
+                message: e.message,
             })?;
 
         // Serialize the response

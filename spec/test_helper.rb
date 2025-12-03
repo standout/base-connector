@@ -162,6 +162,52 @@ module TestHelper
     ActionTester.new(app, connection_data)
   end
 
+  class TriggerTester
+    def initialize(app, connection_data)
+      @app = app
+      @connection = AppBridge::Connection.new(
+        'test-connection',
+        'Test Connection',
+        connection_data.to_json
+      )
+    end
+
+    def fetch_events(trigger_name, input_data = {}, store_data = {})
+      trigger_context = AppBridge::TriggerContext.new(
+        trigger_name,
+        @connection,
+        store_data.to_json,
+        input_data.to_json
+      )
+
+      @app.fetch_events(trigger_context)
+    end
+
+    def get_input_schema(trigger_name)
+      trigger_context = AppBridge::TriggerContext.new(
+        trigger_name,
+        @connection,
+        '{}',
+        '{}'
+      )
+      @app.trigger_input_schema(trigger_context)
+    end
+
+    def get_output_schema(trigger_name)
+      trigger_context = AppBridge::TriggerContext.new(
+        trigger_name,
+        @connection,
+        '{}',
+        '{}'
+      )
+      @app.trigger_output_schema(trigger_context)
+    end
+  end
+
+  def self.create_trigger_tester(app, connection_data)
+    TriggerTester.new(app, connection_data)
+  end
+
   def self.base_connection
     {
       "base_url" => "http://localhost:8080",

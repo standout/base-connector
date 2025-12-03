@@ -14,10 +14,12 @@ pub fn generate_actions_mod_rs() -> Result<(), BuildError> {
             if path.is_dir() {
                 let action_name = path
                     .file_name()
-                    .ok_or_else(|| BuildError::Io(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Invalid action directory name",
-                    )))?
+                    .ok_or_else(|| {
+                        BuildError::Io(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Invalid action directory name",
+                        ))
+                    })?
                     .to_string_lossy()
                     .to_string();
                 let action_path = path.join("action.rs");
@@ -69,10 +71,12 @@ pub fn generate_triggers_mod_rs() -> Result<(), BuildError> {
             if path.is_dir() {
                 let trigger_name = path
                     .file_name()
-                    .ok_or_else(|| BuildError::Io(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Invalid trigger directory name",
-                    )))?
+                    .ok_or_else(|| {
+                        BuildError::Io(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Invalid trigger directory name",
+                        ))
+                    })?
                     .to_string_lossy()
                     .to_string();
                 let trigger_path = path.join("fetch_events.rs");
