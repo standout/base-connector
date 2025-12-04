@@ -48,33 +48,52 @@ cargo install --git https://github.com/standout/base-connector-tools.git --bin g
 List all operations from an OpenAPI spec:
 
 ```bash
-endpoints <openapi_url>
+endpoints <openapi_url_or_file>
 ```
 
-**Example:**
+- `openapi_url_or_file` - URL or path to OpenAPI specification file (local file paths can be relative or absolute)
+
+**Examples:**
 ```bash
+# From URL
 endpoints https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json
+
+# From local file (relative to current directory)
+endpoints ./openapi.yaml
+endpoints openapi.json
+
+# From local file (absolute path)
+endpoints /path/to/openapi.yaml
 ```
+
+The output shows each operation with a round emoji (🔵) followed by the `operation_id`. Use the `operation_id` shown in this output when generating actions or triggers.
 
 ### Generate Action
 
 Generate schemas and executor code for a specific action operation:
 
 ```bash
-generate_action <openapi_url> <operation_id> [name]
+generate_action <openapi_url_or_file> <operation_id> [name]
 ```
 
-- `openapi_url` - URL to the OpenAPI specification
-- `operation_id` - The operation ID from the OpenAPI spec
+- `openapi_url_or_file` - URL or path to OpenAPI specification file (local file paths can be relative or absolute)
+- `operation_id` - The operation ID from the OpenAPI spec (shown after the round emoji in the `endpoints` output)
 - `name` (optional) - Custom name for the action. If not provided, the operation ID will be used
 
-**Example:**
+**Examples:**
 ```bash
-# Generate with default name (uses operation_id)
+# From URL with default name (uses operation_id)
 generate_action https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json repos/update
 
-# Generate with custom name
+# From URL with custom name
 generate_action https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json repos/update update_repository
+
+# From local file (relative to current directory)
+generate_action ./openapi.yaml repos/update update_repository
+generate_action openapi.json repos/update
+
+# From local file (absolute path)
+generate_action /path/to/openapi.yaml repos/update
 ```
 
 ### Generate Trigger
@@ -82,20 +101,27 @@ generate_action https://raw.githubusercontent.com/github/rest-api-description/ma
 Generate schemas and executor code for a specific trigger operation:
 
 ```bash
-generate_trigger <openapi_url> <operation_id> [name]
+generate_trigger <openapi_url_or_file> <operation_id> [name]
 ```
 
-- `openapi_url` - URL to the OpenAPI specification
-- `operation_id` - The operation ID from the OpenAPI spec
+- `openapi_url_or_file` - URL or path to OpenAPI specification file (local file paths can be relative or absolute)
+- `operation_id` - The operation ID from the OpenAPI spec (shown after the round emoji in the `endpoints` output)
 - `name` (optional) - Custom name for the trigger. If not provided, the operation ID will be used
 
-**Example:**
+**Examples:**
 ```bash
-# Generate with default name (uses operation_id)
+# From URL with default name (uses operation_id)
 generate_trigger https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json issues/list-for-repo
 
-# Generate with custom name
+# From URL with custom name
 generate_trigger https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json issues/list-for-repo list_issues
+
+# From local file (relative to current directory) with custom name
+generate_trigger ./openapi.yaml issues/list-for-repo list_issues
+generate_trigger openapi.json issues/list-for-repo
+
+# From local file (absolute path)
+generate_trigger /path/to/openapi.yaml issues/list-for-repo
 ```
 
 Generated actions will be placed in `src/actions/{action_name}/` with:
