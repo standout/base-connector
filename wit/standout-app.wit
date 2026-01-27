@@ -1,4 +1,4 @@
-package standout:app@3.0.0;
+package standout:app@4.0.0;
 
 interface types {
   // The trigger-store is a string that is used to store data between trigger
@@ -275,9 +275,54 @@ interface http {
   }
 }
 
+interface file {
+  // HTTP headers for file requests (same as http interface)
+  type headers = list<tuple<string, string>>;
+
+  // Normalized file data
+  record file-data {
+    // Base64-encoded file content
+    base64: string,
+    // MIME type (e.g., "application/pdf")
+    content-type: string,
+    // Filename
+    filename: string,
+  }
+
+  variant file-error {
+    // Failed to fetch file from URL
+    fetch-failed(string),
+    // Invalid input format (not a valid URL, data URI, or base64)
+    invalid-input(string),
+    // Request timed out
+    timeout(string),
+    // Any other error
+    other(string),
+  }
+
+  // Normalize any file source to FileData
+  //
+  // The source is automatically detected:
+  // - URL: "https://example.com/file.pdf" - fetched with optional headers
+  // - Data URI: "data:application/pdf;base64,JVBERi0..." - parsed and extracted
+  // - Base64: Any other string is treated as raw base64 - decoded to detect type
+  //
+  // Parameters:
+  // - source: URL, data URI, or base64-encoded content
+  // - headers: Optional HTTP headers for URL requests (e.g., Authorization)
+  // - filename: Optional filename override (auto-detected if not provided)
+  //
+  // Returns file-data which will be processed by the platform:
+  // 1. Fields with format: "file-output" in the output schema are identified
+  // 2. File data is uploaded using the configured file_uploader
+  // 3. The file-data is replaced with the blob ID in the response
+  normalize: func(source: string, headers: option<headers>, filename: option<string>) -> result<file-data, file-error>;
+}
+
 world bridge {
   import http;
   import environment;
+  import file;
   export triggers;
   export actions;
 }

@@ -27,7 +27,7 @@ The compiled WebAssembly file will be at: `target/wasm32-wasip2/release/github_c
 ## Prerequisites
 
 - **Rust 1.84.0+** with `wasm32-wasip2` target: `rustup target add wasm32-wasip2`
-- **Ruby 3.4.2+** (optional, for RSpec tests)
+- **Ruby 3.4.8+** (optional, for RSpec tests)
 
 ## Action and Trigger Generation
 
@@ -158,6 +158,112 @@ The generated schema is based on the OpenAPI specification, but it may not alway
 #### Output Schema
 
 The generated output schema (`base_output_schema.json`) is based on the API response structure. You may need to adjust it if the API response structure differs from the OpenAPI spec
+
+### File Handling
+
+Actions and Triggers can return file data that will be automatically processed by the platform. Use the `file::normalize` function to handle files from URLs, data URIs, or base64 strings.
+
+#### Using `file::normalize` in Rust
+
+Import and use the `normalize` function in your action:
+
+```rust
+use crate::standout::app::file::normalize;
+use crate::standout::app::types::{AppError, ErrorCode, ActionContext};
+use serde_json::Value;
+
+pub fn execute(context: ActionContext) -> Result<Value, AppError> {
+    let input_data = input_data(&context)?;
+    
+    // Get file source from input (could be URL, data URI, or base64)
+    let file_source = input_data
+        .get("file_url")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError {
+            code: ErrorCode::InvalidInput,
+            message: "file_url is required".to_string(),
+        })?;
+    
+    let api_client = client(&context)?;
+    let headers: Vec<(String, String)> = api_client.headers.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    
+    let file_data_to_send = normalize(
+        file_source,
+        None, // Optional headers for authorized requests
+        Some("invoice.pdf"), // Optional filename override
+    ).map_err(|e| AppError {
+        code: ErrorCode::Other,
+        message: format!("Failed to normalize file: {:?}", e),
+    })?;
+    
+    // Upload the file to your API
+    // The API will return a URL for the uploaded file
+    let upload_response = api_client.post(
+        "/api/files/upload",
+        &serde_json::json!({
+            "file": {
+                "base64": file_data_to_send.base64,
+                "content_type": file_data_to_send.content_type,
+                "filename": file_data_to_send.filename,
+            }
+        })
+    )?;
+    
+    // Extract the file URL from the API response
+    let file_received_url = upload_response
+        .get("url")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError {
+            code: ErrorCode::MalformedResponse,
+            message: "API response missing 'url' field".to_string(),
+        })?;
+    
+    // Normalize the file from the API response URL
+    let file_data_received = normalize(
+        file_received_url,
+        Some(&headers), // Use context header data for authorized request
+        Some("invoice.pdf"), // Optional filename override
+    ).map_err(|e| AppError {
+        code: ErrorCode::Other,
+        message: format!("Failed to normalize file from API URL: {:?}", e),
+    })?;
+
+    // Return the normalized file data in the same format as the normalize output
+    // The platform will process it if marked with format: "file-output"
+    Ok(serde_json::json!({
+        "document": {
+            "base64": file_data_received.base64,
+            "content_type": file_data_received.content_type,
+            "filename": file_data_received.filename,
+        }
+    }))
+}
+```
+
+The `normalize` function automatically detects the input format:
+- **URL**: `"https://example.com/file.pdf"` - fetched with optional headers
+- **Data URI**: `"data:application/pdf;base64,JVBERi0..."` - parsed and extracted
+- **Base64**: Any other string is treated as raw base64 - decoded to detect type
+
+#### Marking File Fields in Output Schema
+
+Mark file fields in your output schema with `format: "file-output"` so the platform knows to process them:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "document": {
+      "type": "string",
+      "format": "file-output"
+    }
+  }
+}
+```
+
+The platform will:
+1. Identify fields with `format: "file-output"` in the output schema. `type` should be string.
+2. Expect a normalized file object in the corresponding location in the Action or Trigger response (serialized_output)
 
 ### Customizing Triggers
 
@@ -458,3 +564,19 @@ cargo fmt
 # Lint code
 cargo clippy --target wasm32-wasip2
 ```
+
+## Release
+
+The repository includes a GitHub Actions workflow (`.github/workflows/release.yml`) that automatically builds and releases the connector when a GitHub release is published.
+
+**What it does:**
+- Builds the WASM module with optimizations (`opt-level=z`, `lto=true`, `strip=true`)
+- Extracts the package name from `Cargo.toml` (converts hyphens to underscores for the WASM filename)
+- Creates a release archive (ZIP) containing the WASM file and README
+- Attaches the WASM file and archive to the GitHub release
+
+**To create a release:**
+1. Create a new release in GitHub (with a tag, e.g., `v1.0.0`)
+2. The workflow will automatically build and attach the assets
+
+The workflow uses the package name from `Cargo.toml` to determine the WASM filename, so it works automatically when you rename the connector.
