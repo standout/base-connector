@@ -2,7 +2,7 @@
 
 AllCops:
   NewCops: enable
-  TargetRubyVersion: 3.4.2
+  TargetRubyVersion: 3.4.8
   SuggestExtensions: false
 
 Metrics/BlockLength:
