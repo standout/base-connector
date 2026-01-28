@@ -11,6 +11,8 @@ jobs:
   build:
     name: Build WASM
     runs-on: ubuntu-latest
+    outputs:
+      wasm_file: ${{ steps.package_name.outputs.wasm_file }}
 
     steps:
     - name: Checkout code
@@ -84,17 +86,6 @@ jobs:
     needs: build
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Extract package name from Cargo.toml
-      id: package_name
-      run: |
-        PACKAGE_NAME=$(grep '^name = ' Cargo.toml | sed 's/name = "\(.*\)"/\1/' | tr '-' '_')
-        echo "wasm_file=${PACKAGE_NAME}.wasm" >> $GITHUB_OUTPUT
-        echo "Package name: ${PACKAGE_NAME}"
-        echo "WASM file: ${PACKAGE_NAME}.wasm"
-
     - name: Download build artifacts
       uses: actions/download-artifact@v7
       with:
@@ -110,7 +101,7 @@ jobs:
       with:
         tag_name: ${{ github.event.release.tag_name }}
         files: |
-          ${{ steps.package_name.outputs.wasm_file }}
-          ${{ steps.package_name.outputs.wasm_file }}-${{ github.event.release.tag_name }}.zip
+          ${{ needs.build.outputs.wasm_file }}
+          ${{ needs.build.outputs.wasm_file }}-${{ github.event.release.tag_name }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
