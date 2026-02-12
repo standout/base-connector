@@ -265,6 +265,103 @@ The platform will:
 1. Identify fields with `format: "file-output"` in the output schema. `type` should be string.
 2. Expect a normalized file object in the corresponding location in the Action or Trigger response (serialized_output)
 
+#### Multipart Form Data
+
+For `multipart/form-data` uploads, you must build the body manually and set the `Content-Type` header with a boundary. In `standout:app@4.1.0` you can send raw bytes via `body-bytes`; earlier versions only support a string body.
+
+**Example in Rust:**
+
+```rust
+use crate::client::ApiClient;
+use crate::standout::app::types::{AppError, ActionContext};
+use crate::standout::app::http::{RequestBuilder, Method};
+use serde_json::Value;
+
+pub fn execute(context: ActionContext) -> Result<Value, AppError> {
+    let api_client = client(&context)?;
+    let input_data = input_data(&context)?;
+    
+    // Get file bytes and metadata
+    let file_bytes = /* your file bytes */;
+    let metadata_json = serde_json::to_string(&input_data)?;
+    let boundary = "----app-bridge-boundary";
+    
+    // Build multipart body
+    let mut body = Vec::new();
+    body.extend_from_slice(format!(
+        "--{b}\r\n\
+Content-Disposition: form-data; name=\"metadata\"\r\n\r\n\
+{metadata}\r\n\
+--{b}\r\n\
+Content-Disposition: form-data; name=\"file\"; filename=\"invoice.pdf\"\r\n\
+Content-Type: application/pdf\r\n\r\n",
+        b = boundary,
+        metadata = metadata_json,
+    ).as_bytes());
+    body.extend_from_slice(&file_bytes);
+    body.extend_from_slice(format!("\r\n--{b}--\r\n", b = boundary).as_bytes());
+    
+    // Send request with body-bytes (requires standout:app@4.1.0)
+    let response = RequestBuilder::new()
+        .method(Method::Post)
+        .url(&format!("{}/api/upload", api_client.base_url))
+        .header("Content-Type", format!("multipart/form-data; boundary={}", boundary))
+        .body_bytes(body)
+        .send()?;
+    
+    Ok(serde_json::json!({
+        "upload_id": response.get("id")
+    }))
+}
+```
+
+### Customizing Actions
+
+#### Retry With Reference
+
+`standout:app@4.1.0` introduces a structured retry error for actions. Connectors can return a retry error with a reference and status, and the platform can pass that back on subsequent retries via `action-context.reference-object`.
+
+**In your WASM connector (Rust):**
+
+```rust
+use crate::standout::app::types::{AppError, ErrorCode, ActionContext, ReferenceObject};
+use serde_json::Value;
+
+pub fn execute(context: ActionContext) -> Result<Value, AppError> {
+    // Check if this is a retry with a reference
+    if let Some(ref_obj) = &context.reference_object {
+        // Use the reference to check status
+        let status = check_request_status(&ref_obj.reference)?;
+        if status == "completed" {
+            return Ok(get_result(&ref_obj.reference)?);
+        }
+    }
+    
+    // Make an async API call that returns a request ID
+    let request_id = start_background_job()?;
+    let status = check_request_status(&request_id)?;
+    
+    if status == "processing" {
+        // Return retry error with reference
+        return Err(AppError {
+            code: ErrorCode::RetryWithReference(ReferenceObject {
+                reference: request_id,
+                status: status,
+            }),
+            message: "Background request still processing".to_string(),
+        });
+    }
+    
+    Ok(get_result(&request_id)?)
+}
+```
+
+#### Receiving Binary Responses
+
+In `standout:app@4.1.0`, HTTP responses can include binary data via `body-bytes` in addition to the text `body`. This is useful for downloading files or receiving binary API responses.
+
+**Note:** The `body-bytes` field is `option<list<u8>>`, so it may be `None` for text-only responses. Always check if `body_bytes` is available before using it, and fall back to `body` for text responses.
+
 ### Customizing Triggers
 
 Generated triggers may need customization for your specific use case:

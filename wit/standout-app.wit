@@ -1,4 +1,4 @@
-package standout:app@4.0.0;
+package standout:app@4.1.0;
 
 interface types {
   // The trigger-store is a string that is used to store data between trigger
@@ -48,11 +48,14 @@ interface types {
     // The input data for the action, serialized as a JSON object string.
     // This contains the data passed from the previous step in the workflow.
     serialized-input: string,
+
+    // Optional reference information when the platform retries an action.
+    reference-object: option<reference-object>,
   }
 
   record trigger-response {
     // The trigger events, each event will be used to spawn a new workflow
-    // execution in Standouts integration plattform.
+    // execution in Standouts integration platform.
     events: list<trigger-event>,
 
     // The updated store will be stored and used the next time the trigger is
@@ -73,7 +76,7 @@ interface types {
     // If the connection used for the given instance of the trigger is the same,
     // as seen before. Then the event will be ignored.
     //
-    // A scheduler could therefore use an timestamp as the ID, to ensure that
+    // A scheduler could therefore use a timestamp as the ID, to ensure that
     // the event is only triggered once per given time.
     //
     // A trigger that acts on created orders in a e-commerce system could use
@@ -86,13 +89,20 @@ interface types {
     id: string,
 
     // Serialized data must be a JSON object serialized into a string
-    // Note that it is important that the root is a object, not an array,
+    // Note that it is important that the root is an object, not an array,
     // or another primitive type.
     serialized-data: string,
   }
 
-  /// A structured error that can be returned by for example a call to a trigger or action.
-  /// Contains a machine-readable code and a human-readable message.
+  /// Retry reference payload returned with error-code.retry-with-reference.
+  record reference-object {
+    /// Reference ID provided for retrying this request later.
+    reference: string,
+
+    /// Status describing the retry state.
+    status: string,
+  }
+
   record app-error {
     /// The error code identifying the type of failure.
     code: error-code,
@@ -134,6 +144,9 @@ interface types {
     /// A catch-all for all other types of errors. Should include a descriptive message.
     other,
 
+    /// Retry the request using a reference identifier.
+    retry-with-reference(reference-object),
+
     /// Complete the current workflow execution.
     complete-workflow,
 
@@ -163,7 +176,7 @@ interface triggers {
   // Fetch events
   //
   // There are some limitations to the function:
-  // - It must a `trigger-response` within 30 seconds
+  // - It must return a `trigger-response` within 30 seconds
   // - It must return less than or equal to 100 `trigger-response.events`
   // - It must not return more than 64 kB of data in the `trigger-response.store`
   //
@@ -230,6 +243,8 @@ interface http {
     status: u16,
     headers: headers,
     body: string,
+    /// Raw response payload for binary responses.
+    body-bytes: option<list<u8>>,
   }
 
   record request {
@@ -257,6 +272,8 @@ interface http {
 
     // Add a body to the request
     body: func(body: string) -> request-builder;
+    // Add a binary body to the request
+    body-bytes: func(body: list<u8>) -> request-builder;
 
     object: func() -> request;
 
