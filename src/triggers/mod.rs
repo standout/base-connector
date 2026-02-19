@@ -1,4 +1,2 @@
 // Auto-generated file - do not edit manually
 // Generated from existing trigger executors at compile time
-
-
