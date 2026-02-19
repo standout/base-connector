@@ -2,4 +2,3 @@
 // Generated from existing trigger executors at compile time
 
 {TRIGGER_MODULES}
-
