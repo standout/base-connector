@@ -41,13 +41,16 @@ pub fn generate_actions_mod_rs() -> Result<(), BuildError> {
     })?;
 
     // Generate action modules content
-    let mut action_modules_content = String::new();
-    for action_name in &action_modules {
-        action_modules_content.push_str(&format!(
-            "pub mod {} {{\n    include!(\"../actions/{}/action.rs\");\n}}\n\n",
-            action_name, action_name
-        ));
-    }
+    let action_modules_content = action_modules
+        .iter()
+        .map(|action_name| {
+            format!(
+                "pub mod {} {{\n    include!(\"../actions/{}/action.rs\");\n}}",
+                action_name, action_name
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
 
     // Replace placeholder
     let mod_content = template.replace("{ACTION_MODULES}", &action_modules_content);
@@ -98,13 +101,16 @@ pub fn generate_triggers_mod_rs() -> Result<(), BuildError> {
     })?;
 
     // Generate trigger modules content
-    let mut trigger_modules_content = String::new();
-    for trigger_name in &trigger_modules {
-        trigger_modules_content.push_str(&format!(
-            "pub mod {} {{\n    include!(\"../triggers/{}/fetch_events.rs\");\n}}\n\n",
-            trigger_name, trigger_name
-        ));
-    }
+    let trigger_modules_content = trigger_modules
+        .iter()
+        .map(|trigger_name| {
+            format!(
+                "pub mod {} {{\n    include!(\"../triggers/{}/fetch_events.rs\");\n}}",
+                trigger_name, trigger_name
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
 
     // Replace placeholder
     let mod_content = template.replace("{TRIGGER_MODULES}", &trigger_modules_content);

@@ -14,6 +14,7 @@ pub struct ApiClient {
 
 impl ApiClient {
     /// Create a new ApiClient from connection data
+    #[allow(dead_code)]
     pub fn new(connection_data: &Value) -> Result<Self, AppError> {
         let base_url = connection_data
             .get("base_url")
