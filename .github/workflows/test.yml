@@ -11,23 +11,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Install Rust 1.85.0 to support edition = "2024"
+      # 1. Install Rust from rust-toolchain.toml
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.85.0
-          targets: wasm32-wasip2
-          components: rustfmt, clippy
 
       # 2. Cache Rust-dependencies
       - name: Cache Rust dependencies
         uses: swatinem/rust-cache@v2
 
-      # 3. Install Ruby 3.4 (3.4.2 / 3.4.8)
+      # 3. Install Ruby from .ruby-version
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.4"
+          ruby-version: .ruby-version
           bundler-cache: true
 
       # 4. Check code formatting

@@ -52,8 +52,12 @@ pub fn generate_actions_mod_rs() -> Result<(), BuildError> {
         .collect::<Vec<_>>()
         .join("\n\n");
 
-    // Replace placeholder
-    let mod_content = template.replace("{ACTION_MODULES}", &action_modules_content);
+    // Replace placeholder and normalize trailing newlines (avoids extra blank line when no modules)
+    let mod_content = template
+        .replace("{ACTION_MODULES}", &action_modules_content)
+        .trim_end_matches('\n')
+        .to_string()
+        + "\n";
 
     // Write the mod.rs file
     let mod_rs_path = actions_dir.join("mod.rs");
@@ -112,8 +116,12 @@ pub fn generate_triggers_mod_rs() -> Result<(), BuildError> {
         .collect::<Vec<_>>()
         .join("\n\n");
 
-    // Replace placeholder
-    let mod_content = template.replace("{TRIGGER_MODULES}", &trigger_modules_content);
+    // Replace placeholder and normalize trailing newlines (avoids extra blank line when no modules)
+    let mod_content = template
+        .replace("{TRIGGER_MODULES}", &trigger_modules_content)
+        .trim_end_matches('\n')
+        .to_string()
+        + "\n";
 
     // Write the mod.rs file
     let mod_rs_path = triggers_dir.join("mod.rs");
