@@ -1,3 +1,4 @@
 target
 .rspec_status
 src/schemas/generated/
+.DS_Store

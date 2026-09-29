@@ -2,6 +2,7 @@
 
 mod actions;
 mod client;
+mod connections;
 mod triggers;
 
 // Include the dynamically generated action routing
@@ -21,6 +22,7 @@ generate!({
 });
 
 use crate::exports::standout::app::actions::{AppError as ActionsAppError, Guest as ActionsGuest};
+use crate::exports::standout::app::connections::Guest as ConnectionsGuest;
 use crate::exports::standout::app::triggers::{
     AppError as TriggersAppError, Guest as TriggersGuest,
 };
@@ -124,6 +126,12 @@ impl ActionsGuest for App {
         })?;
 
         Ok(ActionResponse { serialized_output })
+    }
+}
+
+impl ConnectionsGuest for App {
+    fn connection_config() -> String {
+        connections::connection_config()
     }
 }
 

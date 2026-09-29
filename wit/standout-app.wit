@@ -1,4 +1,4 @@
-package standout:app@4.1.0;
+package standout:app@5.0.0;
 
 interface types {
   // The trigger-store is a string that is used to store data between trigger
@@ -336,10 +336,28 @@ interface file {
   normalize: func(source: string, headers: option<headers>, filename: option<string>) -> result<file-data, file-error>;
 }
 
+// Connection configuration for app-defined connectors.
+//
+// The connector is stateless. It declares how users connect and what runtime
+// data actions/triggers receive. The platform stores credentials and handles
+// OAuth flows, token refresh, and building serialized-data for execution.
+//
+// connection-config returns a JSON string.
+// It is not validated in WASM. app_bridge validates exported JSON against
+// connection-config-schema.json (see ext/app_bridge/docs/) using AppBridge::ConnectionConfigValidator.
+// Connector authors can run the same validator on JSON in CI without loading WASM.
+// integrationer persists connection_config_data,
+// and reads stored JSON at runtime — not a live WASM call.
+interface connections {
+  // Returns the embedded connection-config JSON document as a string.
+  connection-config: func() -> string;
+}
+
 world bridge {
   import http;
   import environment;
   import file;
   export triggers;
   export actions;
+  export connections;
 }
