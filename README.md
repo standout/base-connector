@@ -8,6 +8,7 @@ This connector uses the **WebAssembly Interface Type (WIT)** specification to de
 
 - **Actions interface**: Methods for executing actions (`execute`, `input_schema`, `output_schema`, `action_ids`)
 - **Triggers interface**: Methods for fetching trigger events (`fetch_events`, `input_schema`, `output_schema`, `trigger_ids`)
+- **Connections interface** (WIT 5.0.0+): Returns `connection-config` JSON for platform-managed authentication
 - **Types**: Shared data structures like `ActionContext`, `TriggerContext`, `Connection`, etc.
 
 The WIT file is used to generate Rust bindings that allow the connector to communicate with the Standout App Bridge runtime. This file should not be modified.
@@ -542,64 +543,103 @@ cargo build --target wasm32-wasip2 --release
 
 ## Connection Configuration
 
-The connector expects connection data at runtime. By default, it expects the following structure:
+WIT **5.0.0** adds a `connections` interface. The connector embeds `src/connection-config.json` in the WASM binary and exports it via `connection_config()`. **integrationer extracts this JSON when a WASM version is uploaded** and stores it on the version (`connection_config_data`). At runtime the platform reads that stored JSON — it does not call WASM again for config.
+
+Full JSON Schema: [connection-config-schema.json](https://github.com/standout/app_bridge/blob/main/ext/app_bridge/docs/connection-config-schema.json)
+
+The template ships **disabled by default** so legacy Ruby accounts keep working:
+
+```json
+{ "strategies": [], "default_strategy": "", "runtime": {} }
+```
+
+To enable platform-managed auth, edit `src/connection-config.json` and rebuild. Each strategy needs a unique `id` and a `type` (`oauth2`, `api_key`, `basic_auth`, `session`, `none`, or `custom`). The platform resolves `{{...}}` templates in `runtime.headers` and passes the result to actions/triggers via `context.connection.serialized_data`.
+
+### OAuth 2.0 (authorization code)
 
 ```json
 {
-  "base_url": "https://api.example.com",
-  "headers": {
-    "Authorization": "Bearer your-token",
-    "Content-Type": "application/json"
-  }
-}
-```
-
-### Customizing Connection Data Structure
-
-If your API's connection data uses a different structure (e.g., different field names, nested objects, or missing `base_url`/`headers`), you'll need to customize the `ApiClient::new()` method in `src/client.rs`.
-
-**Example:** If your connection data looks like this:
-```json
-{
-  "api_endpoint": "https://api.example.com",
-  "auth": {
-    "token": "your-token"
-  }
-}
-```
-
-You would modify `src/client.rs` to extract these fields:
-
-```rust
-pub fn new(connection_data: &Value) -> Result<Self, AppError> {
-    let base_url = connection_data
-        .get("api_endpoint")  // Changed from "base_url"
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| AppError {
-            code: ErrorCode::Misconfigured,
-            message: "api_endpoint not found in connection data".to_string(),
-        })?
-        .to_string();
-
-    let auth_obj = connection_data
-        .get("auth")  // Changed from "headers"
-        .and_then(|v| v.as_object())
-        .ok_or_else(|| AppError {
-            code: ErrorCode::Misconfigured,
-            message: "auth not found in connection data".to_string(),
-        })?;
-
-    let mut headers = HashMap::new();
-    if let Some(token) = auth_obj.get("token").and_then(|v| v.as_str()) {
-        headers.insert("Authorization".to_string(), format!("Bearer {}", token));
+  "strategies": [{
+    "id": "oauth2",
+    "type": "oauth2",
+    "title": "OAuth 2.0",
+    "authorization_server": {
+      "issuer": "https://auth.example.com",
+      "authorization_endpoint": "https://auth.example.com/oauth/authorize",
+      "token_endpoint": "https://auth.example.com/oauth/token",
+      "grant_types_supported": ["authorization_code", "refresh_token"]
+    },
+    "oauth_client": {
+      "grant_type": "authorization_code",
+      "scopes": ["read", "write"],
+      "client_id": "{{env:EXAMPLE_CLIENT_ID}}",
+      "client_secret": "{{env:EXAMPLE_CLIENT_SECRET}}"
+    },
+    "storage": ["access_token", "refresh_token", "expires_at", "strategy_id"]
+  }],
+  "default_strategy": "oauth2",
+  "runtime": {
+    "base_url": "https://api.example.com",
+    "headers": {
+      "Authorization": { "template": "Bearer {{access_token}}" }
     }
-    headers.insert("Content-Type".to_string(), "application/json".to_string());
-
-    Ok(ApiClient { base_url, headers })
+  }
 }
 ```
 
-See `src/client.rs` for the current implementation.
+### API key
+
+```json
+{
+  "strategies": [{
+    "id": "api_key",
+    "type": "api_key",
+    "connection_schema": {
+      "type": "object",
+      "required": ["api_key"],
+      "properties": { "api_key": { "type": "string", "title": "API key" } }
+    },
+    "storage": ["api_key", "strategy_id"]
+  }],
+  "default_strategy": "api_key",
+  "runtime": {
+    "base_url": "https://api.example.com",
+    "headers": { "X-API-Key": { "template": "{{api_key}}" } }
+  }
+}
+```
+
+### Basic auth
+
+```json
+{
+  "strategies": [{
+    "id": "basic",
+    "type": "basic_auth",
+    "connection_schema": {
+      "type": "object",
+      "required": ["username", "password"],
+      "properties": {
+        "username": { "type": "string" },
+        "password": { "type": "string", "format": "password" }
+      }
+    },
+    "storage": ["username", "password", "strategy_id"]
+  }],
+  "default_strategy": "basic",
+  "runtime": {
+    "base_url": "https://api.example.com",
+    "headers": {
+      "Authorization": {
+        "template": "{{username}}:{{password}}",
+        "as": "basic_authorization"
+      }
+    }
+  }
+}
+```
+
+`ApiClient::new()` in `src/client.rs` expects `base_url` and `headers` by default — customize it if your API needs a different shape.
 
 ## Testing
 
