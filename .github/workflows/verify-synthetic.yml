@@ -26,11 +26,18 @@ jobs:
           docker build -f verification/build.Dockerfile -t lg1365-wasm-builder:1.93.1 verification
           docker build -f verification/runtime.Dockerfile -t lg1365-wasm-runtime:5.0.0 verification
       - name: Build once and verify identical bytes
-        run: python3 verification/verify.py --output .verification-output/final
+        run: python3 verification/verify_candidate.py --output .verification-output/final
       - name: Retain test-only artifact and evidence (not a release)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: synthetic-wasm-${{ github.event.pull_request.head.sha || github.sha }}
-          path: .verification-output/final/
+          name: internal-candidate-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .verification-output/final/candidate/
+          retention-days: 14
+      - name: Retain diagnostic evidence separately (never importable)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-fixture-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .verification-output/final/environment-probes/
           retention-days: 14

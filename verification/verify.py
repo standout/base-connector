@@ -99,25 +99,10 @@ def isolated_case(image, bundle, digest, scenario, reject_digest=False):
             subprocess.run(['docker', 'rm', '--force', name], capture_output=True, check=True)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, required=True, help='New output directory; must not exist')
-    parser.add_argument('--builder-image', default='lg1365-wasm-builder:1.93.1')
-    parser.add_argument('--runtime-image', default='lg1365-wasm-runtime:5.0.0')
-    parser.add_argument('--allow-dirty', action='store_true', help='Development only; marks source_dirty=true')
-    args = parser.parse_args()
-    source_commit = command(['git', 'rev-parse', 'HEAD'], cwd=ROOT)
-    dirty = bool(command(['git', 'status', '--porcelain'], cwd=ROOT))
-    if dirty and not args.allow_dirty:
-        raise SystemExit('Commit the source before producing verified evidence (or use explicit --allow-dirty for development).')
-    bundle = args.output.resolve()
-    bundle.mkdir(parents=True, exist_ok=False)
-    # Image IDs, not moving tags, are used for every build/test in this run.
-    builder = image_id(args.builder_image)
-    runtime = image_id(args.runtime_image)
+def build_once(builder, bundle, source='fixture', artifact_stem='synthetic_contract_fixture'):
     with tempfile.TemporaryDirectory(prefix='lg1365-wasm-build-') as temporary:
         staging = Path(temporary)
-        shutil.copytree(VERIFY / 'fixture', staging, dirs_exist_ok=True)
+        shutil.copytree(VERIFY / source, staging, dirs_exist_ok=True)
         shutil.copytree(VERIFY / 'schemas', staging / 'schemas')
         (staging / 'wit').mkdir()
         shutil.copyfile(ROOT / 'wit/standout-app.wit', staging / 'wit/standout-app.wit')
@@ -138,7 +123,26 @@ def main():
         if result.returncode:
             print(result.stdout + result.stderr, flush=True)
         result.check_returncode()
-        shutil.copyfile(staging / 'target/wasm32-wasip2/release/synthetic_contract_fixture.wasm', bundle / 'connector.wasm')
+        shutil.copyfile(staging / f'target/wasm32-wasip2/release/{artifact_stem}.wasm', bundle / 'connector.wasm')
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output', type=Path, required=True, help='New output directory; must not exist')
+    parser.add_argument('--builder-image', default='lg1365-wasm-builder:1.93.1')
+    parser.add_argument('--runtime-image', default='lg1365-wasm-runtime:5.0.0')
+    parser.add_argument('--allow-dirty', action='store_true', help='Development only; marks source_dirty=true')
+    args = parser.parse_args()
+    source_commit = command(['git', 'rev-parse', 'HEAD'], cwd=ROOT)
+    dirty = bool(command(['git', 'status', '--porcelain'], cwd=ROOT))
+    if dirty and not args.allow_dirty:
+        raise SystemExit('Commit the source before producing verified evidence (or use explicit --allow-dirty for development).')
+    bundle = args.output.resolve()
+    bundle.mkdir(parents=True, exist_ok=False)
+    # Image IDs, not moving tags, are used for every build/test in this run.
+    builder = image_id(args.builder_image)
+    runtime = image_id(args.runtime_image)
+    build_once(builder, bundle)
     wasm = bundle / 'connector.wasm'
     wasm.chmod(0o444)
     digest = sha(wasm)
