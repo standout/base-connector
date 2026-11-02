@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -125,7 +126,8 @@ def main():
                  'cargo', 'fmt', '--', '--check'], timeout=30)
         build_name = 'lg1365-wasm-build-' + uuid.uuid4().hex[:12]
         try:
-            result = subprocess.run(['docker', 'run', '--name', build_name, '--rm', '--cpus', '2', '--memory', '2g', '--pids-limit', '128',
+            result = subprocess.run(['docker', 'run', '--name', build_name, '--rm', '--user', f'{os.getuid()}:{os.getgid()}',
+                                 '--env', 'CARGO_HOME=/tmp/cargo', '--cpus', '2', '--memory', '2g', '--pids-limit', '128',
                                  '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
                                  '--mount', f'type=bind,source={staging},target=/source', builder,
                                  'cargo', 'build', '--locked', '--release', '--target', 'wasm32-wasip2'],
@@ -133,6 +135,8 @@ def main():
         finally:
             subprocess.run(['docker', 'rm', '--force', build_name], capture_output=True)
         (bundle / 'build.log').write_text(result.stdout + result.stderr, encoding='utf-8')
+        if result.returncode:
+            print(result.stdout + result.stderr, flush=True)
         result.check_returncode()
         shutil.copyfile(staging / 'target/wasm32-wasip2/release/synthetic_contract_fixture.wasm', bundle / 'connector.wasm')
     wasm = bundle / 'connector.wasm'
