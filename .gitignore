@@ -2,3 +2,7 @@ target
 .rspec_status
 src/schemas/generated/
 .DS_Store
+
+# Disposable verification outputs (never release inputs)
+.verification-output/
+verification/__pycache__/
