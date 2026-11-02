@@ -1,0 +1,36 @@
+name: Verify synthetic WASM artifact
+on:
+  push:
+    paths:
+      - 'verification/**'
+      - 'wit/**'
+      - '.github/workflows/verify-synthetic.yml'
+  pull_request:
+    paths:
+      - 'verification/**'
+      - 'wit/**'
+      - '.github/workflows/verify-synthetic.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Build verification images
+        run: |
+          docker build -f verification/build.Dockerfile -t lg1365-wasm-builder:1.93.1 verification
+          docker build -f verification/runtime.Dockerfile -t lg1365-wasm-runtime:5.0.0 verification
+      - name: Build once and verify identical bytes
+        run: python3 verification/verify.py --output .verification-output/final
+      - name: Retain test-only artifact and evidence (not a release)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-wasm-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .verification-output/final/
+          retention-days: 14

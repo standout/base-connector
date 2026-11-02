@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reference",
+    "values",
+    "environment_count"
+  ],
+  "properties": {
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "values": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": [
+          "boolean",
+          "null",
+          "integer"
+        ],
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      }
+    },
+    "environment_count": {
+      "const": 0
+    }
+  }
+}
