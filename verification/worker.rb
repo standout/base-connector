@@ -28,8 +28,8 @@ execute = lambda do |action, input|
 end
 checks = []
 case scenario
-when 'contract'
-  expected_actions = %w[cpu_probe echo_contract memory_probe network_probe]
+when 'contract', 'candidate'
+  expected_actions = scenario == 'candidate' ? ['echo_contract'] : %w[cpu_probe echo_contract memory_probe network_probe]
   raise 'Unexpected actions' unless app.action_ids.sort == expected_actions
   raise 'Unexpected triggers' unless app.trigger_ids.empty?
   raise 'Wrong WIT' unless app.wit_version == '5.0.0'
@@ -51,7 +51,8 @@ when 'contract'
   first = execute.call('echo_contract', input)
   raise 'Incorrect deterministic output' unless first == expected && execute.call('echo_contract', input) == first
   raise 'Output schema mismatch' unless JSONSchemer.schema(schemas['output']).valid?(first)
-  checks.concat(%w[discovery wit_version empty_connections embedded_schemas deterministic_output false_null empty_guest_environment])
+  checks.concat(%w[discovery wit_version empty_connections embedded_schemas deterministic_output false_null])
+  checks << (scenario == 'candidate' ? 'constant_environment_count' : 'empty_guest_environment')
   [{}, input.merge('extra' => true), input.merge('values' => ["invalid"]), input.merge('reference' => ''), input.merge('values' => [1.5]), input.merge('values' => [9007199254740992])].each do |invalid|
     raise 'Invalid input accepted by schema' if JSONSchemer.schema(schemas['input']).valid?(invalid)
     begin
@@ -76,6 +77,28 @@ when 'contract'
     checks << 'unknown_action_rejected'
   end
   raise 'Unknown action accepted' unless checks.include?('unknown_action_rejected')
+  if scenario == 'candidate'
+    supplied_connection = AppBridge::Connection.new('synthetic', 'Forbidden data', '{"unexpected":true}')
+    begin
+      app.execute_action(AppBridge::ActionContext.new('echo_contract', supplied_connection, JSON.generate(input)))
+    rescue StandardError => e
+      raise unless e.message.include?('No connection data permitted')
+      checks << 'connection_data_rejected'
+    end
+    raise 'Connection data accepted' unless checks.include?('connection_data_rejected')
+    %w[network_probe cpu_probe memory_probe].each do |forbidden|
+      [:execute_action, :action_input_schema, :action_output_schema].each do |operation|
+        begin
+          app.public_send(operation, context.call(forbidden, '{}'))
+        rescue StandardError => e
+          raise unless e.message.include?('Unknown fixture action')
+          next
+        end
+        raise 'Diagnostic entry point accepted by candidate'
+      end
+    end
+    checks << 'diagnostic_actions_absent_and_rejected'
+  end
   checks << 'invalid_inputs_rejected'
 when 'network'
   begin

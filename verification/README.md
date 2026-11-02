@@ -84,3 +84,76 @@ cache identity is not a content digest. Also account for App creation producing
 1.0.0 with `latest: true` and controller promotion behavior. This PR changes none
 of those semantics. No signing keys, new grants, platform publication or release
 workflow changes are required for this isolated artifact slice.
+
+## Harmless candidate, separate from diagnostic fixture
+
+The follow-up `candidate/` crate contains only `echo_contract`. It has no HTTP,
+CPU-loop or memory-exhaustion implementations and advertises no connections or
+triggers. It does not read the guest environment; its output's
+`environment_count: 0` is a constant in this pure action, not an independent
+measurement of the host environment. The worker still checks its own cleared
+environment. The v5 WIT defines host interfaces; having that common ABI is not a
+claim that arbitrary future candidate code cannot use host capabilities.
+
+```sh
+python3 verification/verify_candidate.py --output .verification-output/candidate-run
+```
+
+This first builds/tests the diagnostic fixture to prove the restricted execution
+environment. It then separately builds the harmless candidate once and tests those
+exact candidate bytes in the same runtime image/isolation boundary. Candidate
+checks verify the exact single action list, empty triggers/connections, embedded
+contracts, deterministic results, invalid inputs, and rejection of all diagnostic
+action names through execute/input-schema/output-schema entry points. It also
+rejects a wrong digest before loading and rejects substitution of the previously
+successful diagnostic WASM during offline checking.
+
+The output has two sibling directories:
+
+- `environment-probes/`: **never importable or selectable** as an AppBundle::Version
+  or connector. Hiding probe actions in a catalog does not make this artifact safe.
+- `candidate/`: contains only the harmless `connector.wasm`, its contract and
+  candidate test results, plus JSON evidence about the separate environment tests.
+  It does not contain diagnostic WASM. This is concrete input for a *future*
+  separately authorized staged-import implementation, not permission to import it
+  through today's platform upload/controller path.
+
+The candidate manifest has distinct format
+`integrationer.verified-wasm-candidate.v1`, role `internal_connector_candidate`,
+and `published: false`, `origin_verified: false`, `publication_authorized: false`.
+`tests.json` concerns candidate bytes only; `environment-tests.json` concerns a
+*different* fixture hash. Both identities and their shared runtime are checked.
+CI retains these as separate candidate and diagnostic artifacts. Use the explicit
+candidate mode when checking the candidate bundle; fixture manifests are rejected:
+
+```sh
+python3 verification/check_bundle.py .verification-output/candidate-run/candidate \
+  --candidate --expected-artifact <selected-candidate-sha256> \
+  --expected-commit <source-commit>
+```
+
+Network isolation applies to execution. Building images and downloading Rust
+build dependencies use network access; this is not a network-free build. The
+image-tag, transitive-dependency and architecture reproducibility limitations
+above still apply. Integrity and passing tests do not authenticate origin or
+supply publishing authorization. The root template and release workflow remain
+unchanged. This change depends on PR 10; it does not complete OP-5756 or OP-5672.
+
+### Later AppBundle integration (design handoff only)
+
+Existing `AppBundle::App`, `Version`, attached WASM, action/trigger records and
+version selection can remain the eventual domain model. First introduce an
+explicit staged ingestion boundary that verifies selected bytes/digests and
+retains isolated extraction evidence without constructing a live App/Version.
+Normal `Version` attachment validation and callbacks currently execute WASM and
+use app environment; they cannot serve as read-only staging. A future deliberate
+model/service change must consume verified metadata without that execution path,
+retain content-digest identity, and enforce authorization and version visibility.
+Do not bypass current callbacks with `save(validate: false)` as an import strategy.
+
+App creation currently creates `1.0.0` with `latest: true`, and the version
+controller promotes new versions. Thus ordinary App/Version creation is not a
+safe staging API. A later implementation must explicitly separate staging from
+promotion, preserve existing policy/validation, and test that neither callbacks,
+action discovery nor selection auto-publish. This PR creates no records and
+changes no platform behavior. No diagnostic fixture may ever cross that boundary.
