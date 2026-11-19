@@ -26,7 +26,10 @@ use crate::exports::standout::app::connections::Guest as ConnectionsGuest;
 use crate::exports::standout::app::triggers::{
     AppError as TriggersAppError, Guest as TriggersGuest,
 };
-use crate::standout::app::types::{ActionContext, ActionResponse, TriggerContext, TriggerResponse};
+use crate::standout::app::types::{
+    ActionContext, ActionResponse, ActionSchemaContext, SchemaResponse, TriggerContext,
+    TriggerResponse, TriggerSchemaContext,
+};
 
 struct App;
 
@@ -36,32 +39,12 @@ impl TriggersGuest for App {
         Ok(get_available_triggers())
     }
 
-    fn input_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
-        // Call the executor's input_schema method dynamically
-        let schema_value = execute_trigger_input_schema_dynamically(&context.trigger_id, &context)
-            .map_err(|e| TriggersAppError {
-                code: e.code,
-                message: e.message,
-            })?;
-
-        serde_json::to_string_pretty(&schema_value).map_err(|e| TriggersAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to serialize schema: {}", e),
-        })
+    fn input_schema(context: TriggerSchemaContext) -> Result<SchemaResponse, TriggersAppError> {
+        execute_trigger_input_schema_dynamically(&context.trigger_id, &context)
     }
 
-    fn output_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
-        // Call the executor's output_schema method dynamically
-        let schema_value = execute_trigger_output_schema_dynamically(&context.trigger_id, &context)
-            .map_err(|e| TriggersAppError {
-                code: e.code,
-                message: e.message,
-            })?;
-
-        serde_json::to_string_pretty(&schema_value).map_err(|e| TriggersAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to serialize schema: {}", e),
-        })
+    fn output_schema(context: TriggerSchemaContext) -> Result<SchemaResponse, TriggersAppError> {
+        execute_trigger_output_schema_dynamically(&context.trigger_id, &context)
     }
 
     fn fetch_events(context: TriggerContext) -> Result<TriggerResponse, TriggersAppError> {
@@ -82,32 +65,12 @@ impl ActionsGuest for App {
         Ok(get_available_actions())
     }
 
-    fn input_schema(context: ActionContext) -> Result<String, ActionsAppError> {
-        // Call the executor's input_schema method dynamically
-        let schema_value = execute_action_input_schema_dynamically(&context.action_id, &context)
-            .map_err(|e| ActionsAppError {
-                code: e.code,
-                message: e.message,
-            })?;
-
-        serde_json::to_string_pretty(&schema_value).map_err(|e| ActionsAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to serialize schema: {}", e),
-        })
+    fn input_schema(context: ActionSchemaContext) -> Result<SchemaResponse, ActionsAppError> {
+        execute_action_input_schema_dynamically(&context.action_id, &context)
     }
 
-    fn output_schema(context: ActionContext) -> Result<String, ActionsAppError> {
-        // Call the executor's output_schema method dynamically
-        let schema_value = execute_action_output_schema_dynamically(&context.action_id, &context)
-            .map_err(|e| ActionsAppError {
-            code: e.code,
-            message: e.message,
-        })?;
-
-        serde_json::to_string_pretty(&schema_value).map_err(|e| ActionsAppError {
-            code: crate::standout::app::types::ErrorCode::Other,
-            message: format!("Failed to serialize schema: {}", e),
-        })
+    fn output_schema(context: ActionSchemaContext) -> Result<SchemaResponse, ActionsAppError> {
+        execute_action_output_schema_dynamically(&context.action_id, &context)
     }
 
     fn execute(context: ActionContext) -> Result<ActionResponse, ActionsAppError> {

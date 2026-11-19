@@ -30,6 +30,23 @@ The compiled WebAssembly file will be at: `target/wasm32-wasip2/release/github_c
 - **Rust 1.84.0+** with `wasm32-wasip2` target: `rustup target add wasm32-wasip2`
 - **Ruby 3.4.8+** (optional, for RSpec tests)
 
+## Reading schemas without a connection (WIT 6)
+
+Actions and triggers describe input and output independently. Static schemas return
+`SchemaResponse::Complete` even when no connection is selected. For tenant fields:
+
+```rust
+pub fn input_schema(ctx: &ActionSchemaContext) -> Result<SchemaResponse, AppError> {
+    match &ctx.connection {
+        Some(account) => Ok(SchemaResponse::Complete(load_tenant_schema(account)?)),
+        None => Ok(SchemaResponse::Partial(include_str!("base_input_schema.json").into())),
+    }
+}
+```
+
+Return `ConnectionRequired` when no fields can be described without a connection.
+Keep upstream failures as `Err(AppError)`. Execution still requires a connection.
+
 ## Action and Trigger Generation
 
 Actions and triggers can be generated from OpenAPI specifications using [base-connector-tools](https://github.com/standout/base-connector-tools), or created manually. The generation tools are optional - you can build a connector without an OpenAPI schema.
@@ -448,19 +465,19 @@ Create a directory `src/actions/{action_name}/` with:
   }
 
   /// Get input schema
-  pub fn input_schema(_context: &ActionContext) -> Result<Value, AppError> {
+  pub fn input_schema(_context: &ActionSchemaContext) -> Result<SchemaResponse, AppError> {
       // Load schema from file or return inline
       // If the schema should be fetched dynamically, use the ApiClient
       let schema = include_str!("base_input_schema.json");
-      Ok(serde_json::from_str(schema)?)
+      Ok(SchemaResponse::Complete(schema.into()))
   }
 
   /// Get output schema
-  pub fn output_schema(_context: &ActionContext) -> Result<Value, AppError> {
+  pub fn output_schema(_context: &ActionSchemaContext) -> Result<SchemaResponse, AppError> {
       // Load schema from file or return inline
       // If the schema should be fetched dynamically, use the ApiClient
       let schema = include_str!("base_output_schema.json");
-      Ok(serde_json::from_str(schema)?)
+      Ok(SchemaResponse::Complete(schema.into()))
   }
   ```
 
@@ -521,15 +538,15 @@ Create a directory `src/triggers/{trigger_name}/` with:
   }
 
   /// Get input schema
-  pub fn input_schema(_context: &TriggerContext) -> Result<Value, AppError> {
+  pub fn input_schema(_context: &TriggerSchemaContext) -> Result<SchemaResponse, AppError> {
       let schema = include_str!("input_schema.json");
-      Ok(serde_json::from_str(schema)?)
+      Ok(SchemaResponse::Complete(schema.into()))
   }
 
   /// Get output schema
-  pub fn output_schema(_context: &TriggerContext) -> Result<Value, AppError> {
+  pub fn output_schema(_context: &TriggerSchemaContext) -> Result<SchemaResponse, AppError> {
       let schema = include_str!("output_schema.json");
-      Ok(serde_json::from_str(schema)?)
+      Ok(SchemaResponse::Complete(schema.into()))
   }
   ```
 

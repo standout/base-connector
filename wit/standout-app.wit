@@ -1,4 +1,4 @@
-package standout:app@5.0.0;
+package standout:app@6.0.0;
 
 interface types {
   // The trigger-store is a string that is used to store data between trigger
@@ -51,6 +51,28 @@ interface types {
 
     // Optional reference information when the platform retries an action.
     reference-object: option<reference-object>,
+  }
+
+  /// JSON Schema Draft 2020-12, independently for each direction.
+  variant schema-response {
+    complete(string),
+    /// Known fields; choosing a connection may reveal additional fields.
+    partial(string),
+    connection-required,
+  }
+
+  record action-schema-context {
+    action-id: string,
+    connection: option<connection>,
+    serialized-input: string,
+    reference-object: option<reference-object>,
+  }
+
+  record trigger-schema-context {
+    trigger-id: string,
+    connection: option<connection>,
+    store: trigger-store,
+    serialized-input: string,
   }
 
   record trigger-response {
@@ -157,7 +179,7 @@ interface types {
 
 
 interface triggers {
-  use types.{trigger-context, trigger-event, trigger-response, app-error};
+  use types.{trigger-schema-context, schema-response, trigger-context, trigger-event, trigger-response, app-error};
 
   trigger-ids: func() -> result<list<string>, app-error>;
 
@@ -165,13 +187,13 @@ interface triggers {
   // Returns a JSON Schema Draft 2020-12 schema as a string
   // The schema may vary based on the connection in the context
   // The trigger-id is extracted from the context
-  input-schema: func(context: trigger-context) -> result<string, app-error>;
+  input-schema: func(context: trigger-schema-context) -> result<schema-response, app-error>;
 
   // Get the output schema for a specific trigger
   // Returns a JSON Schema Draft 2020-12 schema as a string
   // The schema may vary based on the connection in the context
   // The trigger-id is extracted from the context
-  output-schema: func(context: trigger-context) -> result<string, app-error>;
+  output-schema: func(context: trigger-schema-context) -> result<schema-response, app-error>;
 
   // Fetch events
   //
@@ -198,7 +220,7 @@ interface triggers {
 }
 
 interface actions {
-  use types.{action-context, action-response, app-error};
+  use types.{action-schema-context, schema-response, action-context, action-response, app-error};
 
   action-ids: func() -> result<list<string>, app-error>;
 
@@ -206,13 +228,13 @@ interface actions {
   // Returns a JSON Schema Draft 2020-12 schema as a string
   // The schema may vary based on the connection in the context
   // The action-id is extracted from the context
-  input-schema: func(context: action-context) -> result<string, app-error>;
+  input-schema: func(context: action-schema-context) -> result<schema-response, app-error>;
 
   // Get the output schema for a specific action
   // Returns a JSON Schema Draft 2020-12 schema as a string
   // The schema may vary based on the connection in the context
   // The action-id is extracted from the context
-  output-schema: func(context: action-context) -> result<string, app-error>;
+  output-schema: func(context: action-schema-context) -> result<schema-response, app-error>;
 
   // Execute an action
   //

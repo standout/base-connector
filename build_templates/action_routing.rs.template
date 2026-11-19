@@ -22,8 +22,8 @@ pub fn execute_action_dynamically(
 #[allow(clippy::match_single_binding, unused_variables)]
 pub fn execute_action_input_schema_dynamically(
     action_id: &str,
-    context: &ActionContext,
-) -> Result<serde_json::Value, AppError> {
+    context: &ActionSchemaContext,
+) -> Result<SchemaResponse, AppError> {
     match action_id {
 {INPUT_SCHEMA_MATCH_ARMS}
         _ => Err(AppError {
@@ -37,8 +37,8 @@ pub fn execute_action_input_schema_dynamically(
 #[allow(clippy::match_single_binding, unused_variables)]
 pub fn execute_action_output_schema_dynamically(
     action_id: &str,
-    context: &ActionContext,
-) -> Result<serde_json::Value, AppError> {
+    context: &ActionSchemaContext,
+) -> Result<SchemaResponse, AppError> {
     match action_id {
 {OUTPUT_SCHEMA_MATCH_ARMS}
         _ => Err(AppError {
