@@ -19,8 +19,8 @@ RSpec.describe 'Base connector connections' do
   end
 
   describe 'connection-config' do
-    it 'reports WIT 5 and connections support' do
-      expect(app.wit_version).to eq('5.0.0')
+    it 'reports WIT 6 and connections support' do
+      expect(app.wit_version).to eq('6.0.0')
       expect(app.connections_supported?).to be(true)
     end
 

@@ -1,10 +1,10 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    app_bridge (5.0.0)
+    app_bridge (5.1.0)
       json_schemer (~> 2.3)
       rb_sys (~> 0.9.130)
-    app_bridge (5.0.0-arm64-darwin)
+    app_bridge (5.1.0-arm64-darwin)
       json_schemer (~> 2.3)
     ast (2.4.3)
     benchmark-malloc (0.2.0)
@@ -88,7 +88,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  app_bridge (~> 5.0)
+  app_bridge (~> 5.1)
   rspec (~> 3.12)
   rspec-benchmark (~> 0.6)
   rubocop (~> 1.50)
