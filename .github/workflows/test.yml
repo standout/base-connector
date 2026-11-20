@@ -25,6 +25,9 @@ jobs:
       # 3. Install Ruby from .ruby-version
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
+        env:
+          # Building the AppBridge host extension needs a newer Rust than the guest.
+          RUSTUP_TOOLCHAIN: stable
         with:
           ruby-version: .ruby-version
           bundler-cache: true
