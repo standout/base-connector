@@ -120,15 +120,15 @@ module TestHelper
   end
 
   class ActionTester
-    def initialize(app, connection_data)
+    def initialize(app, connection_data = nil)
       @app = app
-      @connection_data = connection_data
+      @connection = TestHelper.connection(connection_data)
     end
 
     def execute_action(action_name, input_data)
       action_context = AppBridge::ActionContext.new(
         action_name,
-        @connection_data,
+        @connection,
         input_data.to_json
       )
 
@@ -136,40 +136,32 @@ module TestHelper
     end
 
     def get_input_schema(action_name)
-      action_context = AppBridge::ActionContext.new(
-        action_name,
-        @connection_data,
-        '{}'
-      )
-      @app.action_input_schema(action_context)
+      @app.schema_result(:action, :input, key: action_name, connection: @connection).last
     end
 
     def get_output_schema(action_name)
-      action_context = AppBridge::ActionContext.new(
-        action_name,
-        @connection_data,
-        '{}'
-      )
-      @app.action_output_schema(action_context)
+      @app.schema_result(:action, :output, key: action_name, connection: @connection).last
     end
+  end
+
+  def self.connection(data)
+    return data unless data.is_a?(Hash)
+
+    AppBridge::Connection.new('test-connection', 'Test Connection', data.to_json)
   end
 
   def self.create_mock_server
     MockServer.new
   end
 
-  def self.create_action_tester(app, connection_data)
+  def self.create_action_tester(app, connection_data = nil)
     ActionTester.new(app, connection_data)
   end
 
   class TriggerTester
-    def initialize(app, connection_data)
+    def initialize(app, connection_data = nil)
       @app = app
-      @connection = AppBridge::Connection.new(
-        'test-connection',
-        'Test Connection',
-        connection_data.to_json
-      )
+      @connection = TestHelper.connection(connection_data)
     end
 
     def fetch_events(trigger_name, input_data = {}, store_data = {})
@@ -184,27 +176,15 @@ module TestHelper
     end
 
     def get_input_schema(trigger_name)
-      trigger_context = AppBridge::TriggerContext.new(
-        trigger_name,
-        @connection,
-        '{}',
-        '{}'
-      )
-      @app.trigger_input_schema(trigger_context)
+      @app.schema_result(:trigger, :input, key: trigger_name, connection: @connection, store: '{}').last
     end
 
     def get_output_schema(trigger_name)
-      trigger_context = AppBridge::TriggerContext.new(
-        trigger_name,
-        @connection,
-        '{}',
-        '{}'
-      )
-      @app.trigger_output_schema(trigger_context)
+      @app.schema_result(:trigger, :output, key: trigger_name, connection: @connection, store: '{}').last
     end
   end
 
-  def self.create_trigger_tester(app, connection_data)
+  def self.create_trigger_tester(app, connection_data = nil)
     TriggerTester.new(app, connection_data)
   end
 

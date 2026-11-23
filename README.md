@@ -440,28 +440,34 @@ Create a directory `src/actions/{action_name}/` with:
 - **`action.rs`** - Must export three functions:
   ```rust
   use crate::client::ApiClient;
-  use crate::standout::app::types::{AppError, ActionContext};
+  use crate::standout::app::types::{ActionContext, ActionSchemaContext, AppError, ErrorCode, SchemaResponse};
   use serde_json::Value;
+
+  fn parse_json(raw: &str) -> Result<Value, AppError> {
+      serde_json::from_str(raw).map_err(|error| AppError {
+          code: ErrorCode::Misconfigured,
+          message: error.to_string(),
+      })
+  }
 
   /// Get the ApiClient from context
   fn client(context: &ActionContext) -> Result<ApiClient, AppError> {
-      let connection_data: Value = serde_json::from_str(&context.connection.serialized_data)?;
+      let connection_data = parse_json(&context.connection.serialized_data)?;
       ApiClient::new(&connection_data)
   }
 
   /// Get the input data from context
   fn input_data(context: &ActionContext) -> Result<Value, AppError> {
-      serde_json::from_str(&context.serialized_input)
+      parse_json(&context.serialized_input)
   }
 
   /// Execute the action
   pub fn execute(context: ActionContext) -> Result<Value, AppError> {
-      let client = client(&context)?;
+      let _client = client(&context)?;
       let input_data = input_data(&context)?;
       
-      // Your action implementation
-      // Make API calls using client.get(), client.post(), etc.
-      // Return the response as Value
+      // Replace this echo with your API call and return its response.
+      Ok(input_data)
   }
 
   /// Get input schema
@@ -491,12 +497,19 @@ Create a directory `src/triggers/{trigger_name}/` with:
 - **`fetch_events.rs`** - Must export three functions:
   ```rust
   use crate::client::ApiClient;
-  use crate::standout::app::types::{AppError, TriggerContext, TriggerResponse, TriggerEvent};
+  use crate::standout::app::types::{AppError, ErrorCode, SchemaResponse, TriggerContext, TriggerEvent, TriggerResponse, TriggerSchemaContext};
   use serde_json::Value;
+
+  fn parse_json(raw: &str) -> Result<Value, AppError> {
+      serde_json::from_str(raw).map_err(|error| AppError {
+          code: ErrorCode::Misconfigured,
+          message: error.to_string(),
+      })
+  }
 
   /// Get the ApiClient from context
   fn client(context: &TriggerContext) -> Result<ApiClient, AppError> {
-      let connection_data: Value = serde_json::from_str(&context.connection.serialized_data)?;
+      let connection_data = parse_json(&context.connection.serialized_data)?;
       ApiClient::new(&connection_data)
   }
 
@@ -505,7 +518,7 @@ Create a directory `src/triggers/{trigger_name}/` with:
       if context.serialized_input.is_empty() {
           Ok(serde_json::json!({}))
       } else {
-          serde_json::from_str(&context.serialized_input)
+          parse_json(&context.serialized_input)
       }
   }
 
@@ -514,22 +527,22 @@ Create a directory `src/triggers/{trigger_name}/` with:
       if context.store.is_empty() {
           Ok(serde_json::json!({}))
       } else {
-          serde_json::from_str(&context.store)
+          parse_json(&context.store)
       }
   }
 
   /// Fetch events for the trigger
   pub fn fetch_events(context: TriggerContext) -> Result<TriggerResponse, AppError> {
-      let api_client = client(&context)?;
-      let input_data = input_data(&context)?;
-      let store_data = store_data(&context)?;
+      let _api_client = client(&context)?;
+      let _input_data = input_data(&context)?;
+      let _store_data = store_data(&context)?;
 
       // Fetch data from API, process into events
       let events: Vec<TriggerEvent> = vec![]; // Your events here
 
       // Update store with new state
       let updated_store = serde_json::json!({});
-      let store_string = serde_json::to_string(&updated_store)?;
+      let store_string = updated_store.to_string();
 
       Ok(TriggerResponse {
           events,
