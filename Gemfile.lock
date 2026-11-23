@@ -1,9 +1,9 @@
 GIT
   remote: https://github.com/standout/app_bridge.git
-  revision: d7260c3aab577500156ce24799328382ea1996f9
-  ref: d7260c3aab577500156ce24799328382ea1996f9
+  revision: 1c9b523f186acfad65f39b2e6804fc43b3d8a063
+  ref: 1c9b523f186acfad65f39b2e6804fc43b3d8a063
   specs:
-    app_bridge (5.1.0)
+    app_bridge (6.0.0)
       json_schemer (~> 2.3)
       rb_sys (~> 0.9.130)
 
@@ -92,7 +92,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  app_bridge (~> 5.1)!
+  app_bridge (~> 6.0)!
   rspec (~> 3.12)
   rspec-benchmark (~> 0.6)
   rubocop (~> 1.50)
