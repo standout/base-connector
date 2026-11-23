@@ -4,9 +4,9 @@ source 'https://rubygems.org'
 
 ruby '3.4.8'
 
-# Use the WIT v6 source until app_bridge 5.1.0 is published on RubyGems.
-gem 'app_bridge', '~> 5.1', git: 'https://github.com/standout/app_bridge.git',
-                            ref: 'd7260c3aab577500156ce24799328382ea1996f9'
+# Use the WIT v6 source until app_bridge 6.0.0 is published on RubyGems.
+gem 'app_bridge', '~> 6.0', git: 'https://github.com/standout/app_bridge.git',
+                            ref: '1c9b523f186acfad65f39b2e6804fc43b3d8a063'
 
 # RSpec for testing
 gem 'rspec', '~> 3.12'
